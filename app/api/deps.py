@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.core.config import get_settings
 from app.db.session import get_db
 from app.models import User
-from app.services import auth
+from app.services import auth, recurring
 
 DB = Annotated[Session, Depends(get_db)]
 
@@ -21,3 +21,13 @@ def current_user(db: DB, request: Request) -> User:
 
 
 CurrentUser = Annotated[User, Depends(current_user)]
+
+
+def synced_user(db: DB, user: CurrentUser) -> User:
+    """The current user, after generating any recurring transactions that are now due.
+    Use on every route that reads transaction data, so totals are never stale."""
+    recurring.generate_due(db, user)
+    return user
+
+
+SyncedUser = Annotated[User, Depends(synced_user)]

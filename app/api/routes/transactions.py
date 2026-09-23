@@ -3,7 +3,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Query, status
 
-from app.api.deps import DB, CurrentUser
+from app.api.deps import DB, CurrentUser, SyncedUser
 from app.api.responses import NOT_FOUND, UNAUTHORIZED, VALIDATION
 from app.core.errors import ValidationFailedError
 from app.models import TransactionType
@@ -27,7 +27,7 @@ router = APIRouter(prefix="/transactions", tags=["transactions"], responses=UNAU
     responses=VALIDATION,
 )
 def list_transactions(
-    user: CurrentUser,
+    user: SyncedUser,
     db: DB,
     type: TransactionType | None = None,
     year: Annotated[int | None, Query(ge=2000, le=2100)] = None,

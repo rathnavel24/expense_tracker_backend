@@ -12,6 +12,9 @@ class Settings(BaseSettings):
 
     environment: Literal["development", "production"] = "development"
 
+    # Timezone that defines "today" for generating recurring transactions.
+    app_timezone: str = "Asia/Kolkata"
+
     database_url: PostgresDsn
 
     # Session cookie

@@ -6,29 +6,13 @@ from datetime import date, datetime
 from sqlalchemy.orm import Session
 
 from app.core.errors import NotFoundError, ValidationFailedError
-from app.models import Category, Transaction, TransactionType, User
-from app.repositories import categories, transactions
+from app.models import Transaction, TransactionType, User
+from app.repositories import transactions
 from app.repositories.transactions import Cursor
 from app.schemas.transaction import TransactionCreate, TransactionPage, TransactionUpdate
+from app.services.entry_rules import apply_type_and_category, resolve_category
 
 _NOT_FOUND = "Transaction not found."
-
-
-def _category_for(db: Session, category_id: int, type_: TransactionType) -> Category:
-    """Validate that the category exists, is usable, and matches the transaction type.
-
-    The database enforces the type match too (composite FK); checking here turns what would
-    be an integrity error into a clear field-level message.
-    """
-    category = categories.get(db, category_id)
-    if category is None or not category.is_active:
-        raise ValidationFailedError(
-            "Invalid category.", fields={"category_id": "This category does not exist."}
-        )
-    if category.kind != type_:
-        label = "an expense category" if type_ is TransactionType.EXPENSE else "an income source"
-        raise ValidationFailedError("Invalid category.", fields={"category_id": f"Choose {label}."})
-    return category
 
 
 def get(db: Session, user: User, transaction_id: uuid.UUID) -> Transaction:
@@ -40,7 +24,7 @@ def get(db: Session, user: User, transaction_id: uuid.UUID) -> Transaction:
 
 
 def create(db: Session, user: User, data: TransactionCreate) -> Transaction:
-    category = _category_for(db, data.category_id, data.type)
+    category = resolve_category(db, data.category_id, data.type)
     transaction = transactions.add(
         db,
         Transaction(
@@ -50,6 +34,7 @@ def create(db: Session, user: User, data: TransactionCreate) -> Transaction:
             category_id=category.id,
             description=data.description,
             occurred_on=data.occurred_on,
+            payment_method=data.payment_method,
         ),
     )
     db.commit()
@@ -63,17 +48,9 @@ def update(
     transaction = get(db, user, transaction_id)
     changes = data.model_dump(exclude_unset=True)
 
-    if "type" in changes or "category_id" in changes:
-        new_type = changes.get("type", transaction.type)
-        new_category_id = changes.get("category_id", transaction.category_id)
-        if new_type != transaction.type and "category_id" not in changes:
-            raise ValidationFailedError(
-                "Invalid category.",
-                fields={"category_id": "Choose a category for the new transaction type."},
-            )
-        # An existing (possibly since-retired) category stays valid if unchanged.
-        if new_category_id != transaction.category_id or new_type != transaction.type:
-            _category_for(db, new_category_id, new_type)
+    apply_type_and_category(
+        db, changes, current_type=transaction.type, current_category_id=transaction.category_id
+    )
 
     for field, value in changes.items():
         setattr(transaction, field, value)

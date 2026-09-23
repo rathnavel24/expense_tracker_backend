@@ -1,9 +1,11 @@
+from datetime import date
 from typing import Annotated
 
 from fastapi import APIRouter, Query
 
-from app.api.deps import DB, CurrentUser
+from app.api.deps import DB, SyncedUser
 from app.api.responses import UNAUTHORIZED, VALIDATION
+from app.core.clock import today as app_today
 from app.schemas.dashboard import MonthlyDashboard
 from app.services import dashboard
 
@@ -19,9 +21,16 @@ router = APIRouter(prefix="/dashboard", tags=["dashboard"])
     responses={**UNAUTHORIZED, **VALIDATION},
 )
 def monthly_dashboard(
-    user: CurrentUser,
+    user: SyncedUser,
     db: DB,
     year: Annotated[int, Query(ge=2000, le=2100)],
     month: Annotated[int, Query(ge=1, le=12)],
+    today: Annotated[
+        date | None,
+        Query(
+            description="The viewer's local date; enables the Today card and like-for-like "
+            "comparison. Defaults to today in the app timezone."
+        ),
+    ] = None,
 ) -> MonthlyDashboard:
-    return dashboard.monthly(db, user, year, month)
+    return dashboard.monthly(db, user, year, month, today or app_today())
