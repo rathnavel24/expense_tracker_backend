@@ -1,0 +1,12 @@
+# Runtime dependencies. Install into the virtualenv:
+#   python3 -m venv ../myenv && source ../myenv/bin/activate && pip install -r requirements.txt
+fastapi==0.141.1
+uvicorn[standard]==0.53.0
+sqlalchemy==2.0.54
+alembic==1.20.0
+psycopg[binary]==3.3.6
+pydantic==2.13.5
+pydantic-settings==2.15.0
+email-validator==2.3.0
+argon2-cffi==25.1.0
+tzdata==2026.4
