@@ -7,7 +7,11 @@ from app.core.errors import NotFoundError
 from app.models import RecurringRule, User
 from app.repositories import recurring
 from app.schemas.recurring import RecurringCreate, RecurringUpdate
-from app.services.entry_rules import apply_type_and_category, resolve_category
+from app.services.entry_rules import (
+    apply_type_and_category,
+    remember_payment_method,
+    resolve_category,
+)
 from app.services.recurrence import (
     first_occurrence_on_or_after,
     next_occurrence_after,
@@ -68,6 +72,7 @@ def create(db: Session, user: User, data: RecurringCreate) -> RecurringRule:
             next_run_on=data.start_on,
         ),
     )
+    remember_payment_method(user, data.payment_method)
     db.commit()
     generate_due(db, user)
     db.refresh(rule)
@@ -85,6 +90,7 @@ def update(db: Session, user: User, rule_id: uuid.UUID, data: RecurringUpdate) -
     new_day = changes.get("day_of_month")
     for field, value in changes.items():
         setattr(rule, field, value)
+    remember_payment_method(user, changes.get("payment_method"))
 
     today = app_today()
     if new_day is not None:

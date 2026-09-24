@@ -9,7 +9,7 @@ from app.schemas.dashboard import MonthlyDashboard
 from app.services.months import month_range, shift_month
 from app.services.recurrence import occurrence_in
 
-RECENT_LIMIT = 8
+RECENT_LIMIT = 6
 ZERO = Decimal("0.00")
 
 
@@ -43,8 +43,8 @@ def monthly(db: Session, user: User, year: int, month: int, today: date | None) 
     }
 
     today_summary = None
-    if in_month:
-        assert today is not None
+    if today is not None:
+        # Always about today, whichever month is being viewed.
         day = transactions.totals_by_type(db, user.id, today, today + timedelta(1))
         day_exp = day.get(TransactionType.EXPENSE)
         day_inc = day.get(TransactionType.INCOME)

@@ -10,7 +10,7 @@ from app.services.months import month_range, shift_month
 
 TREND_MONTHS = 6
 ZERO = Decimal("0.00")
-CENT = Decimal("0.01")
+RUPEE = Decimal("1")
 
 
 def monthly(db: Session, user: User, year: int, month: int, today: date) -> MonthlyInsights:
@@ -21,7 +21,8 @@ def monthly(db: Session, user: User, year: int, month: int, today: date) -> Mont
 
     elapsed = [d for d in days if d <= today]
     elapsed_total = sum((by_day.get(d, ZERO) for d in elapsed), ZERO)
-    average = (elapsed_total / len(elapsed)).quantize(CENT, ROUND_HALF_UP) if elapsed else None
+    # Averages are shown to the rupee.
+    average = (elapsed_total / len(elapsed)).quantize(RUPEE, ROUND_HALF_UP) if elapsed else None
     highest = max(by_day.items(), key=lambda kv: (kv[1], kv[0]), default=None)
 
     trend_start = month_range(*shift_month(year, month, -(TREND_MONTHS - 1)))[0]
@@ -37,6 +38,13 @@ def monthly(db: Session, user: User, year: int, month: int, today: date) -> Mont
                 "total_income": by_month.get((y, m, TransactionType.INCOME), ZERO),
             }
         )
+
+    spending_months = [m["total_expenses"] for m in trend if m["total_expenses"] > 0]
+    trend_average = (
+        (sum(spending_months, ZERO) / len(spending_months)).quantize(RUPEE, ROUND_HALF_UP)
+        if spending_months
+        else None
+    )
 
     return MonthlyInsights.model_validate(
         {
@@ -55,5 +63,6 @@ def monthly(db: Session, user: User, year: int, month: int, today: date) -> Mont
                 )
             ],
             "trend": trend,
+            "trend_average_expenses": trend_average,
         }
     )

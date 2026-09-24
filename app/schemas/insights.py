@@ -41,3 +41,6 @@ class MonthlyInsights(BaseModel):
     no_spend_days: int = Field(description="Elapsed days with no expenses.")
     payment_methods: list[PaymentMethodTotal]
     trend: list[MonthTotal] = Field(description="Six months ending with this one, oldest first.")
+    trend_average_expenses: Money | None = Field(
+        description="Average monthly spending over the trend months that had any spending."
+    )

@@ -3,7 +3,7 @@
 from sqlalchemy.orm import Session
 
 from app.core.errors import ValidationFailedError
-from app.models import Category, PaymentMethod, TransactionType
+from app.models import Category, PaymentMethod, TransactionType, User
 from app.repositories import categories
 
 
@@ -57,3 +57,9 @@ def apply_type_and_category(
                 fields={"payment_method": "Income cannot have a payment method."},
             )
         changes["payment_method"] = None
+
+
+def remember_payment_method(user: User, method: PaymentMethod | None) -> None:
+    """Keep the user's most recently used payment method, to pre-select it next time."""
+    if method is not None:
+        user.last_payment_method = method

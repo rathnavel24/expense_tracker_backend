@@ -10,7 +10,11 @@ from app.models import Transaction, TransactionType, User
 from app.repositories import transactions
 from app.repositories.transactions import Cursor
 from app.schemas.transaction import TransactionCreate, TransactionPage, TransactionUpdate
-from app.services.entry_rules import apply_type_and_category, resolve_category
+from app.services.entry_rules import (
+    apply_type_and_category,
+    remember_payment_method,
+    resolve_category,
+)
 
 _NOT_FOUND = "Transaction not found."
 
@@ -37,6 +41,7 @@ def create(db: Session, user: User, data: TransactionCreate) -> Transaction:
             payment_method=data.payment_method,
         ),
     )
+    remember_payment_method(user, data.payment_method)
     db.commit()
     db.refresh(transaction)
     return transaction
@@ -54,6 +59,7 @@ def update(
 
     for field, value in changes.items():
         setattr(transaction, field, value)
+    remember_payment_method(user, changes.get("payment_method"))
     db.commit()
     db.refresh(transaction)
     return transaction

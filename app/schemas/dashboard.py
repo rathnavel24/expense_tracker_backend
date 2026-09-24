@@ -46,7 +46,7 @@ class MonthlyDashboard(BaseModel):
     income_count: int
     expense_count: int
     today: TodaySummary | None = Field(
-        description="Present when the requested `today` falls in this month."
+        description="Spending on `today`, independent of the month requested."
     )
     comparison: Comparison
     expense_breakdown: list[CategoryTotal] = Field(
