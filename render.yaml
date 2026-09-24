@@ -1,0 +1,36 @@
+# Render Blueprint for the Expense Tracker API (FastAPI).
+# The database is external (Supabase Postgres); its connection string is entered in the
+# Render Dashboard when the Blueprint is applied (DATABASE_URL, sync: false).
+
+services:
+  - type: web
+    name: expense-tracker-api
+    runtime: python
+    plan: free
+    # Same region as the Supabase project (ap-southeast-1), to keep queries fast.
+    region: singapore
+    branch: main
+    autoDeploy: true
+    rootDir: backend/app
+    buildFilter:
+      paths:
+        - backend/app/**
+    buildCommand: pip install -r requirements.txt
+    # Apply any pending migrations, then serve. (The free plan has no pre-deploy step.)
+    startCommand: >-
+      alembic upgrade head &&
+      uvicorn app.main:app --host 0.0.0.0 --port $PORT
+      --proxy-headers --forwarded-allow-ips='*'
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.13.12
+      - key: ENVIRONMENT
+        value: production
+      - key: APP_TIMEZONE
+        value: Asia/Kolkata
+      - key: COOKIE_SECURE
+        value: "true"
+      # Supabase Session pooler URI (port 5432) ending in ?sslmode=require.
+      - key: DATABASE_URL
+        sync: false

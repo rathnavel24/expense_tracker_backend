@@ -116,6 +116,22 @@ revokes the `anon`/`authenticated` roles. The backend connects as the table owne
 unaffected. **Any migration that adds a table must also enable RLS on it.** Supabase's security
 advisor then reports only the expected "RLS enabled, no policy" notices.
 
+## Deploying on Render
+
+`render.yaml` is a Render Blueprint for one free web service (`expense-tracker-api`,
+Singapore region, next to the Supabase database). It builds from `backend/app/`, runs
+`alembic upgrade head` on every start, then serves with uvicorn on `$PORT`. The health check
+is `GET /api/health`.
+
+1. In Render, create a Blueprint from this repository.
+2. When asked, paste `DATABASE_URL`: the Supabase **Session pooler** URI (port 5432) ending in
+   `?sslmode=require`.
+3. Apply. Pushes to `main` that touch `backend/app/` redeploy automatically.
+
+Point the frontend's `API_URL` at the service URL (`https://<service>.onrender.com`). On the
+free plan the service sleeps after about 15 idle minutes, so the first request after that
+takes up to a minute.
+
 ## Environment variables (`backend/app/.env`)
 
 | Variable | Default | Notes |
